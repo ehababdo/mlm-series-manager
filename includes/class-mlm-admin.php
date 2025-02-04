@@ -119,7 +119,15 @@ class MLM_Admin {
             wp_redirect(admin_url('admin.php?page=mlm-series'));
             exit;
         }
-        require_once MLM_PLUGIN_DIR . 'templates/admin/episodes.php';
+        $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
+        
+        if ($action === 'add' || $action === 'edit') {
+            require_once MLM_PLUGIN_DIR . 'templates/admin/episode-editor.php';
+        } else {
+            require_once MLM_PLUGIN_DIR . 'templates/admin/episodes.php';
+        }
+        // Include episode actions
+        require_once MLM_PLUGIN_DIR . 'templates/admin/episode-actions.php';
     }
     // Render pages
     public function render_dashboard() {
