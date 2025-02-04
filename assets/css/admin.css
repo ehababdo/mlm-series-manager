@@ -1,0 +1,485 @@
+/**
+ * Media Library Manager Admin Styles
+ * Version: 1.0.0
+ * Current Date and Time (UTC): 2025-02-04 00:42:45
+ * Author: ehababdo
+ */
+
+/* General Layout and Structure */
+.mlm-wrap {
+    margin: 20px 20px 0 0;
+}
+
+.mlm-container {
+    max-width: 1200px;
+}
+
+/* Grid System */
+.mlm-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+/* Form Sections */
+.mlm-form-section {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.mlm-form-section h2 {
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 1.3em;
+    color: #1d2327;
+}
+
+/* Form Elements */
+.mlm-form-row {
+    margin-bottom: 15px;
+}
+
+.mlm-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #1d2327;
+}
+
+.mlm-form-row input[type="text"],
+.mlm-form-row input[type="url"],
+.mlm-form-row input[type="number"],
+.mlm-form-row input[type="date"],
+.mlm-form-row input[type="email"],
+.mlm-form-row select,
+.mlm-form-row textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    transition: border-color 0.15s ease-in-out;
+}
+
+.mlm-form-row input[type="text"]:focus,
+.mlm-form-row input[type="url"]:focus,
+.mlm-form-row input[type="number"]:focus,
+.mlm-form-row input[type="date"]:focus,
+.mlm-form-row input[type="email"]:focus,
+.mlm-form-row select:focus,
+.mlm-form-row textarea:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.mlm-form-row .required {
+    color: #d63638;
+}
+
+/* Tables */
+.mlm-table-wrapper {
+    margin-top: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mlm-table-wrapper table {
+    border: none;
+}
+
+.mlm-table-wrapper th {
+    font-weight: 600;
+    color: #1d2327;
+    padding: 12px;
+}
+
+.mlm-table-wrapper td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.mlm-table-wrapper img {
+    border-radius: 4px;
+}
+
+/* Status Indicators */
+.mlm-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.mlm-status-active {
+    background: #edfaef;
+    color: #0a6b1d;
+}
+
+.mlm-status-inactive {
+    background: #f8e7e7;
+    color: #be2525;
+}
+
+.mlm-status-pending {
+    background: #fff8e5;
+    color: #996800;
+}
+
+/* Buttons and Actions */
+.mlm-form-actions {
+    margin-top: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: right;
+}
+
+.mlm-form-actions .button {
+    margin-left: 10px;
+}
+
+/* Streaming Links Section */
+.streaming-link {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.streaming-link input,
+.streaming-link select {
+    margin: 0;
+}
+
+.add-streaming-link {
+    margin-top: 10px;
+}
+
+/* Episodes Section */
+.episode-block {
+    background: #f9f9f9;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+}
+
+.episode-block h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    color: #1d2327;
+}
+
+.episode-links {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+/* Dashboard Stats */
+.mlm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.mlm-stat-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mlm-stat-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.mlm-stat-header .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    color: #2271b1;
+}
+
+.mlm-stat-number {
+    font-size: 36px;
+    font-weight: bold;
+    color: #2271b1;
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.mlm-stat-label {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+/* Media Upload Buttons */
+.media-upload {
+    margin-top: 5px;
+}
+
+/* Quick Actions */
+.mlm-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.mlm-quick-actions .button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.mlm-quick-actions .dashicons {
+    margin-right: 5px;
+}
+
+/* Notifications */
+.mlm-notice {
+    padding: 12px;
+    margin: 20px 0;
+    border-radius: 4px;
+    border-left: 4px solid;
+}
+
+.mlm-notice-success {
+    background: #edfaef;
+    border-left-color: #0a6b1d;
+}
+
+.mlm-notice-error {
+    background: #f8e7e7;
+    border-left-color: #be2525;
+}
+
+.mlm-notice-warning {
+    background: #fff8e5;
+    border-left-color: #996800;
+}
+
+/* Loading States */
+.mlm-loading {
+    position: relative;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.mlm-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #2271b1;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: mlm-spin 1s linear infinite;
+}
+
+@keyframes mlm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    .mlm-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .streaming-link {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+
+    .mlm-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mlm-quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .mlm-form-actions {
+        text-align: center;
+    }
+
+    .mlm-form-actions .button {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .mlm-form-section,
+    .mlm-table-wrapper,
+    .mlm-stat-card {
+        background: #2c3338;
+        color: #f0f0f1;
+    }
+
+    .mlm-form-row input,
+    .mlm-form-row select,
+    .mlm-form-row textarea {
+        background: #3c434a;
+        color: #f0f0f1;
+        border-color: #4f5459;
+    }
+
+    .mlm-form-section h2,
+    .episode-block h3 {
+        color: #f0f0f1;
+        border-bottom-color: #4f5459;
+    }
+
+    .streaming-link,
+    .episode-block {
+        background: #3c434a;
+    }
+
+    .mlm-table-wrapper th,
+    .mlm-table-wrapper td {
+        border-color: #4f5459;
+    }
+}
+
+.episode-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.episode-header h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+}
+
+.episode-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.delete-episode {
+    color: #dc3232;
+    padding: 0;
+}
+
+.delete-episode:hover {
+    color: #dc3232;
+    opacity: 0.8;
+}
+
+.episode-block {
+    background: #f8f9fa;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.episode-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.episode-season-number,
+.episode-number {
+    width: 150px;
+}
+
+
+.mlm-channels .mlm-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.mlm-channels .mlm-form-section {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.mlm-channels .mlm-form-row {
+    margin-bottom: 15px;
+}
+
+.mlm-channels .mlm-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.mlm-channels .mlm-form-row input[type="text"],
+.mlm-channels .mlm-form-row input[type="url"],
+.mlm-channels .mlm-form-row select,
+.mlm-channels .mlm-form-row textarea {
+    width: 100%;
+}
+
+.mlm-channels .mlm-form-actions {
+    margin-top: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.mlm-channels .mlm-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.mlm-channels .mlm-status-active {
+    background: #edf7ed;
+    color: #1e4620;
+}
+
+.mlm-channels .mlm-status-inactive {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.mlm-channels .required {
+    color: #dc3232;
+}
