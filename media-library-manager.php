@@ -158,6 +158,8 @@ require_once MLM_PLUGIN_DIR . 'includes/class-mlm-admin.php';
 require_once MLM_PLUGIN_DIR . 'includes/class-mlm-ajax.php';
 require_once MLM_PLUGIN_DIR . 'includes/class-mlm-api.php';
 require_once MLM_PLUGIN_DIR . 'includes/functions.php';
+require_once MLM_PLUGIN_DIR . 'includes/class-mlm-tmdb-api.php';
+
 
 // Initialize the plugin
 function mlm_init() {
