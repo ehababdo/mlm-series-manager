@@ -37,7 +37,10 @@ $default_options = array(
         'cache_duration' => '3600',
         'api_key' => '',
         'custom_css' => '',
-        'custom_js' => ''
+        'custom_js' => '',
+        'tmdb_api_key' => '', 
+        'tmdb_language' => 'en',
+
     )
 );
 
@@ -312,6 +315,32 @@ $players = array(
             <!-- Advanced Settings -->
             <div id="advanced" class="tab-pane">
                 <table class="form-table">
+
+                    <tr>
+                        <th scope="row"><label for="tmdb_api_key">TMDB API Key</label></th>
+                        <td>
+                            <input type="text" 
+                                   id="tmdb_api_key" 
+                                   name="advanced[tmdb_api_key]" 
+                                   value="<?php echo esc_attr($options['advanced']['tmdb_api_key'] ?? ''); ?>" 
+                                   class="regular-text">
+                            <p class="description">
+                                Enter your TheMovieDB API key. You can get one from 
+                                <a href="https://www.themoviedb.org/settings/api" target="_blank">here</a>.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="tmdb_language">TMDB Language</label></th>
+                        <td>
+                            <select id="tmdb_language" name="advanced[tmdb_language]">
+                                <option value="ar" <?php selected(($options['advanced']['tmdb_language'] ?? 'ar'), 'ar'); ?>>Arabic</option>
+                                <option value="en" <?php selected(($options['advanced']['tmdb_language'] ?? 'ar'), 'en'); ?>>English</option>
+                            </select>
+                            <p class="description">Select the default language for fetching data from TMDB.</p>
+                        </td>
+                    </tr>
+
                     <tr>
                         <th scope="row"><label for="cache_duration">Cache Duration (seconds)</label></th>
                         <td>

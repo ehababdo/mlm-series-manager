@@ -483,3 +483,40 @@
 .mlm-channels .required {
     color: #dc3232;
 }
+
+
+.mlm-tmdb-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.mlm-tmdb-results {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.tmdb-result {
+    display: flex;
+    gap: 15px;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tmdb-result img {
+    width: 92px;
+    height: auto;
+}
+
+.tmdb-info {
+    flex: 1;
+}
+
+.tmdb-info h4 {
+    margin: 0 0 5px 0;
+}
+
+.tmdb-info p {
+    margin: 0 0 10px 0;
+    color: #666;
+}

@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Current settings
-$current_datetime = '2025-02-04 13:34:21';
+$current_datetime = '2025-02-05 23:34:49';
 $current_user = 'ehababdo';
 
 global $wpdb;
@@ -37,6 +37,48 @@ foreach ($episodes as $episode) {
         "SELECT * FROM $episode_links_table WHERE episode_id = %d AND status = 'active'",
         $episode->id
     ));
+}
+
+// Function to fetch movie details from TMDb
+function fetch_movie_details($movie_id) {
+    $api_key = 'YOUR_TMDB_API_KEY';
+    $base_url = 'https://api.themoviedb.org/3';
+    $url = "$base_url/movie/$movie_id?api_key=$api_key&language=en-US";
+
+    $response = wp_remote_get($url);
+    if (is_wp_error($response)) {
+        return null;
+    }
+
+    return json_decode(wp_remote_retrieve_body($response), true);
+}
+
+// Function to fetch TV details from TMDb
+function fetch_tv_details($tv_id) {
+    $api_key = 'YOUR_TMDB_API_KEY';
+    $base_url = 'https://api.themoviedb.org/3';
+    $url = "$base_url/tv/$tv_id?api_key=$api_key&language=en-US";
+
+    $response = wp_remote_get($url);
+    if (is_wp_error($response)) {
+        return null;
+    }
+
+    return json_decode(wp_remote_retrieve_body($response), true);
+}
+
+// Function to fetch TV episodes from TMDb
+function fetch_tv_episodes($tv_id, $season_number) {
+    $api_key = 'YOUR_TMDB_API_KEY';
+    $base_url = 'https://api.themoviedb.org/3';
+    $url = "$base_url/tv/$tv_id/season/$season_number?api_key=$api_key&language=en-US";
+
+    $response = wp_remote_get($url);
+    if (is_wp_error($response)) {
+        return null;
+    }
+
+    return json_decode(wp_remote_retrieve_body($response), true);
 }
 ?>
 
@@ -261,7 +303,7 @@ foreach ($episodes as $episode) {
                             <span>Air Date: <?php echo esc_html($episode->air_date); ?></span>
                         </div>
                         <div class="episode-actions">
-                            <a href="<?php echo admin_url('admin.php?page=mlm-episodes&action=edit&id=' . $episode->id); ?>" 
+                            <a href="<?php echo admin_url('admin.php?page=mlm-episodes&action=edit&id=' . $episode->id . '&series_id=' . $series_id); ?>" 
                                class="edit-episode">
                                 <span class="dashicons dashicons-edit"></span> Edit
                             </a>
@@ -308,8 +350,7 @@ jQuery(document).ready(function($) {
         var episodeId = $(this).data('id');
         
         if (confirm('Are you sure you want to delete this episode? This action cannot be undone.')) {
-            // Add your delete logic here
-            window.location.href = `<?php echo admin_url('admin.php?page=mlm-episodes&action=delete&id='); ?>${episodeId}`;
+            window.location.href = `<?php echo admin_url('admin.php?page=mlm-episodes&action=delete&id='); ?>${episodeId}&series_id=<?php echo $series_id; ?>`;
         }
     });
 });
