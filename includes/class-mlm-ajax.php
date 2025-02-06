@@ -38,6 +38,8 @@ class MLM_Ajax {
         add_action('wp_ajax_mlm_search_tmdb', array($this, 'search_tmdb'));
         add_action('wp_ajax_mlm_import_from_tmdb', array($this, 'import_from_tmdb'));
         add_action('wp_ajax_mlm_import_season_episodes', array($this, 'import_season_episodes'));
+        add_action('wp_ajax_mlm_get_series_seasons', array($this, 'get_series_seasons'));
+
     }
 
     /**
@@ -121,6 +123,31 @@ class MLM_Ajax {
 
         wp_send_json_success($result);
     }
+    public function get_series_seasons() {
+        check_ajax_referer('mlm_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $tmdb_id = absint($_POST['tmdb_id']);
+        if (!$tmdb_id) {
+            wp_send_json_error('Invalid TMDB ID');
+        }
+
+        $tmdb_api = MLM_TMDB_API::get_instance();
+        $seasons = $tmdb_api->get_series_seasons($tmdb_id);
+        if (!$seasons) {
+            wp_send_json_error('Could not fetch seasons');
+        }
+
+        wp_send_json_success(array(
+            'seasons' => $seasons,
+            'message' => 'Seasons retrieved successfully'
+        ));
+    }
+
+    
     /**
      * Add Movie
      */

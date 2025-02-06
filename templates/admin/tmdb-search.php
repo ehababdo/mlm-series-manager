@@ -26,4 +26,14 @@ if (!defined('ABSPATH')) {
     </div>
 
     <div id="mlm-tmdb-results"></div>
+
+    <!-- Modal for Season Episodes -->
+    <div id="mlm-episodes-modal" class="mlm-modal">
+        <div class="mlm-modal-content">
+            <span class="mlm-modal-close">&times;</span>
+            <h2>Import Episodes</h2>
+            <div id="mlm-seasons-list"></div>
+            <div id="mlm-episodes-list"></div>
+        </div>
+    </div>
 </div>

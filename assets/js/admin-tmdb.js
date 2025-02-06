@@ -127,7 +127,7 @@ jQuery(document).ready(function($) {
 
         // Get series details including seasons
         $.ajax({
-            url: ajaxurl,
+            url: mlm_admin.ajax_url,
             type: 'POST',
             data: {
                 action: 'mlm_get_series_seasons',
@@ -222,7 +222,7 @@ jQuery(document).ready(function($) {
     // AJAX Functions
     function searchTMDB(query, type = 'tv', page = 1) {
         return $.ajax({
-            url: ajaxurl,
+            url: mlm_admin.ajax_url,
             type: 'POST',
             data: {
                 action: 'mlm_search_tmdb',
@@ -236,7 +236,7 @@ jQuery(document).ready(function($) {
 
     function importFromTMDB(tmdbId, type = 'tv') {
         return $.ajax({
-            url: ajaxurl,
+            url: mlm_admin.ajax_url,
             type: 'POST',
             data: {
                 action: 'mlm_import_from_tmdb',
@@ -249,7 +249,7 @@ jQuery(document).ready(function($) {
 
     function importSeasonEpisodes(tmdbSeriesId, localSeriesId, seasonNumber) {
         return $.ajax({
-            url: ajaxurl,
+            url: mlm_admin.ajax_url,
             type: 'POST',
             data: {
                 action: 'mlm_import_season_episodes',
