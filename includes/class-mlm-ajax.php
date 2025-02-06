@@ -3,6 +3,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+require_once MLM_PLUGIN_DIR . 'includes/class-mlm-tmdb-api.php';
+
 class MLM_Ajax {
     public function __construct() {
         // Movies
@@ -31,12 +33,15 @@ class MLM_Ajax {
         
         add_action('wp_ajax_delete_channel', array($this, 'handle_delete_channel'));
 
-
         add_action('wp_ajax_get_episode_links', array($this, 'get_episode_links'));
+
+        // TMDB Integration
+        add_action('wp_ajax_mlm_search_tmdb', array($this, 'search_tmdb'));
+        add_action('wp_ajax_mlm_import_from_tmdb', array($this, 'import_from_tmdb'));
     }
 
     /**
-     * Search TMDB for series
+     * Search TMDB
      */
     public function search_tmdb() {
         check_ajax_referer('mlm_nonce', 'nonce');
@@ -46,10 +51,11 @@ class MLM_Ajax {
         }
 
         $query = sanitize_text_field($_POST['query']);
+        $type = sanitize_text_field($_POST['type'] ?? 'tv');
         $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
         
         $tmdb_api = MLM_TMDB_API::get_instance();
-        $results = $tmdb_api->search_series($query, $page);
+        $results = $tmdb_api->search($query, $type, $page);
         
         if (!$results) {
             wp_send_json_error('No results found');
@@ -57,60 +63,37 @@ class MLM_Ajax {
         
         wp_send_json_success($results);
     }
-
     /**
-     * Import series from TMDB
+     * Import from TMDB
      */
-    public function import_tmdb_series() {
+    public function import_from_tmdb() {
         check_ajax_referer('mlm_nonce', 'nonce');
 
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Permission denied');
         }
 
-        $series_id = absint($_POST['tmdb_id']);
+        $item_id = absint($_POST['tmdb_id']);
+        $type = sanitize_text_field($_POST['type'] ?? 'tv');
         
         $tmdb_api = MLM_TMDB_API::get_instance();
-        $series_info = $tmdb_api->get_series_info($series_id);
+        $item_info = $tmdb_api->get_item_details($item_id, $type);
         
-        if (!$series_info) {
-            wp_send_json_error('Could not fetch series information');
+        if (!$item_info) {
+            wp_send_json_error('Could not fetch item information');
         }
         
-        $formatted_data = $tmdb_api->format_series_data($series_info);
+        $formatted_data = $tmdb_api->format_item_data($item_info, $type);
         
-        // Add to database using existing add_series method
+        // Add to database using existing methods
         $_POST = array_merge($_POST, $formatted_data);
-        $this->add_series();
+        if ($type === 'movie') {
+            $this->add_movie();
+        } else {
+            $this->add_series();
+        }
     }
 
-    /**
-     * Import episode from TMDB
-     */
-    public function import_tmdb_episode() {
-        check_ajax_referer('mlm_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Permission denied');
-        }
-
-        $series_id = absint($_POST['tmdb_id']);
-        $season_number = absint($_POST['season_number']);
-        $episode_number = absint($_POST['episode_number']);
-        
-        $tmdb_api = MLM_TMDB_API::get_instance();
-        $episode_info = $tmdb_api->get_episode_info($series_id, $season_number, $episode_number);
-        
-        if (!$episode_info) {
-            wp_send_json_error('Could not fetch episode information');
-        }
-        
-        $formatted_data = $tmdb_api->format_episode_data($episode_info);
-        
-        // Add to database using existing add_episode method
-        $_POST = array_merge($_POST, $formatted_data);
-        $this->add_episode();
-    }
     // Movies methods
     public function add_movie() {
         check_ajax_referer('mlm_nonce', 'nonce');

@@ -39,7 +39,7 @@ $default_options = array(
         'custom_css' => '',
         'custom_js' => '',
         'tmdb_api_key' => '', 
-        'tmdb_language' => 'en',
+        'tmdb_language' => 'en'
 
     )
 );
@@ -81,6 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mlm_settings_nonce'])
     $options['advanced']['api_key'] = sanitize_text_field($_POST['api_key']);
     $options['advanced']['custom_css'] = wp_kses_post($_POST['custom_css']);
     $options['advanced']['custom_js'] = wp_kses_post($_POST['custom_js']);
+    $options['advanced']['tmdb_api_key'] = sanitize_text_field($_POST['tmdb_api_key']);
+    $options['advanced']['tmdb_language'] = sanitize_text_field($_POST['tmdb_language']);
 
     // Save options
     update_option('mlm_settings', $options);
@@ -321,7 +323,7 @@ $players = array(
                         <td>
                             <input type="text" 
                                    id="tmdb_api_key" 
-                                   name="advanced[tmdb_api_key]" 
+                                   name="tmdb_api_key" 
                                    value="<?php echo esc_attr($options['advanced']['tmdb_api_key'] ?? ''); ?>" 
                                    class="regular-text">
                             <p class="description">
@@ -333,7 +335,7 @@ $players = array(
                     <tr>
                         <th scope="row"><label for="tmdb_language">TMDB Language</label></th>
                         <td>
-                            <select id="tmdb_language" name="advanced[tmdb_language]">
+                            <select id="tmdb_language" name="tmdb_language">
                                 <option value="ar" <?php selected(($options['advanced']['tmdb_language'] ?? 'ar'), 'ar'); ?>>Arabic</option>
                                 <option value="en" <?php selected(($options['advanced']['tmdb_language'] ?? 'ar'), 'en'); ?>>English</option>
                             </select>

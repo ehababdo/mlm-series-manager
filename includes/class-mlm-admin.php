@@ -85,6 +85,17 @@ class MLM_Admin {
             array($this, 'render_episodes_page')  // callback function
         );
 
+        // Add to your admin menu setup
+        add_submenu_page(
+            'mlm-dashboard',
+            'TMDB Import',
+            'Import from TMDB',
+            'manage_options',
+            'mlm-tmdb',
+            array($this, 'render_tmdb_page')
+        );
+
+
     }
 
     public function enqueue_admin_assets($hook) {
@@ -103,6 +114,7 @@ class MLM_Admin {
             wp_localize_script('mlm-admin', 'mlm_admin', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('mlm_nonce'),
+                'placeholder_image' =>  MLM_PLUGIN_URL . 'assets/images/placeholder.png',
                 'current_user' => get_current_user_id(),
                 'current_date' => current_time('mysql'),
                 'texts' => array(
@@ -111,9 +123,36 @@ class MLM_Admin {
                     'success' => __('Operation completed successfully', 'media-library-manager')
                 )
             ));
+
+            wp_enqueue_style(
+                'mlm-admin-tmdb',
+                MLM_PLUGIN_URL . 'assets/css/admin-tmdb.css',
+                array(),
+                MLM_VERSION
+            );
+
+            wp_enqueue_script(
+                'mlm-admin-tmdb',
+                MLM_PLUGIN_URL . 'assets/js/admin-tmdb.js',
+                array('jquery'),
+                MLM_VERSION,
+                true
+            );
+
         }
     }
+
+
+
+    // Render pages
+    // Add the render function
+    public function render_tmdb_page() {
+        require_once MLM_PLUGIN_DIR . 'templates/admin/tmdb-search.php';
+    }
+
+
     public function render_episodes_page() {
+
         // Check if series_id is provided
         if (!isset($_GET['series_id'])) {
             wp_redirect(admin_url('admin.php?page=mlm-series'));
@@ -126,10 +165,11 @@ class MLM_Admin {
         } else {
             require_once MLM_PLUGIN_DIR . 'templates/admin/episodes.php';
         }
+
         // Include episode actions
         require_once MLM_PLUGIN_DIR . 'templates/admin/episode-actions.php';
     }
-    // Render pages
+    
     public function render_dashboard() {
         include MLM_PLUGIN_DIR . 'templates/admin/dashboard.php';
     }
