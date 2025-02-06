@@ -37,6 +37,7 @@ class MLM_Ajax {
         // TMDB Integration
         add_action('wp_ajax_mlm_search_tmdb', array($this, 'search_tmdb'));
         add_action('wp_ajax_mlm_import_from_tmdb', array($this, 'import_from_tmdb'));
+        add_action('wp_ajax_mlm_import_season_episodes', array($this, 'import_season_episodes'));
     }
 
     /**
@@ -93,7 +94,33 @@ class MLM_Ajax {
             $this->add_series();
         }
     }
+    /**
+     * Import Season Episodes from TMDB
+     */
+    public function import_season_episodes() {
+        check_ajax_referer('mlm_nonce', 'nonce');
 
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $tmdb_series_id = absint($_POST['tmdb_series_id']);
+        $local_series_id = absint($_POST['series_id']);
+        $season_number = absint($_POST['season_number']);
+
+        if (!$tmdb_series_id || !$local_series_id || !$season_number) {
+            wp_send_json_error('Invalid parameters provided');
+        }
+
+        $tmdb_api = MLM_TMDB_API::get_instance();
+        $result = $tmdb_api->import_season_episodes($tmdb_series_id, $local_series_id, $season_number);
+
+        if (!$result['success']) {
+            wp_send_json_error($result['message']);
+        }
+
+        wp_send_json_success($result);
+    }
     /**
      * Add Movie
      */
