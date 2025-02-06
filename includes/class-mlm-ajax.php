@@ -32,7 +32,6 @@ class MLM_Ajax {
         add_action('wp_ajax_mlm_get_channel', array($this, 'get_channel'));
         
         add_action('wp_ajax_delete_channel', array($this, 'handle_delete_channel'));
-
         add_action('wp_ajax_get_episode_links', array($this, 'get_episode_links'));
 
         // TMDB Integration
@@ -63,6 +62,7 @@ class MLM_Ajax {
         
         wp_send_json_success($results);
     }
+
     /**
      * Import from TMDB
      */
@@ -94,7 +94,9 @@ class MLM_Ajax {
         }
     }
 
-    // Movies methods
+    /**
+     * Add Movie
+     */
     public function add_movie() {
         check_ajax_referer('mlm_nonce', 'nonce');
 
@@ -105,7 +107,7 @@ class MLM_Ajax {
         $data = $this->sanitize_movie_data($_POST);
         global $wpdb;
 
-        $wpdb->insert(
+        $result = $wpdb->insert(
             $wpdb->prefix . 'mlm_movies',
             array(
                 'title' => $data['title'],
@@ -126,6 +128,10 @@ class MLM_Ajax {
                 'created_at' => current_time('mysql')
             )
         );
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Error adding movie: ' . $wpdb->last_error));
+        }
 
         $movie_id = $wpdb->insert_id;
 
@@ -151,10 +157,181 @@ class MLM_Ajax {
             'movie_id' => $movie_id
         ));
     }
+/**
+     * Edit Movie
+     */
+    public function edit_movie() {
+        check_ajax_referer('mlm_nonce', 'nonce');
 
-    // Similar methods for edit_movie, delete_movie, get_movie...
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
 
-    // Series methods
+        $movie_id = absint($_POST['movie_id']);
+        if (!$movie_id) {
+            wp_send_json_error(array('message' => 'Invalid movie ID'));
+        }
+
+        $data = $this->sanitize_movie_data($_POST);
+        global $wpdb;
+
+        // Update movie data
+        $result = $wpdb->update(
+            $wpdb->prefix . 'mlm_movies',
+            array(
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'trailer_url' => $data['trailer_url'],
+                'thumbnail' => $data['thumbnail'],
+                'poster' => $data['poster'],
+                'icon' => $data['icon'],
+                'language' => $data['language'],
+                'imdb_rating' => $data['imdb_rating'],
+                'age_restriction' => $data['age_restriction'],
+                'country' => $data['country'],
+                'release_date' => $data['release_date'],
+                'genre' => $data['genre'],
+                'duration' => $data['duration'],
+                'status' => $data['status'],
+                'updated_by' => get_current_user_id(),
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $movie_id),
+            array(
+                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s', 
+                '%s', '%s', '%s', '%s', '%s', '%d', '%s'
+            ),
+            array('%d')
+        );
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Error updating movie: ' . $wpdb->last_error));
+        }
+
+        // Handle video links
+        if (isset($data['video_links'])) {
+            // First, delete existing links
+            $wpdb->delete(
+                $wpdb->prefix . 'mlm_movie_links',
+                array('movie_id' => $movie_id),
+                array('%d')
+            );
+
+            // Then add new links
+            foreach ($data['video_links'] as $link) {
+                $wpdb->insert(
+                    $wpdb->prefix . 'mlm_movie_links',
+                    array(
+                        'movie_id' => $movie_id,
+                        'video_url' => $link['url'],
+                        'quality' => $link['quality'],
+                        'server_name' => $link['server'],
+                        'status' => 'active',
+                        'created_by' => get_current_user_id()
+                    ),
+                    array(
+                        '%d', '%s', '%s', '%s', '%s', '%d'
+                    )
+                );
+            }
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Movie updated successfully',
+            'movie_id' => $movie_id
+        ));
+    }
+
+    /**
+     * Delete Movie
+     */
+    public function delete_movie() {
+        check_ajax_referer('mlm_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $movie_id = absint($_POST['movie_id']);
+        if (!$movie_id) {
+            wp_send_json_error(array('message' => 'Invalid movie ID'));
+        }
+
+        global $wpdb;
+
+        // First, delete associated video links
+        $wpdb->delete(
+            $wpdb->prefix . 'mlm_movie_links',
+            array('movie_id' => $movie_id),
+            array('%d')
+        );
+
+        // Then delete the movie
+        $result = $wpdb->delete(
+            $wpdb->prefix . 'mlm_movies',
+            array('id' => $movie_id),
+            array('%d')
+        );
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Error deleting movie: ' . $wpdb->last_error));
+        }
+
+        wp_send_json_success(array('message' => 'Movie deleted successfully'));
+    }
+
+    /**
+     * Get Movie
+     */
+    public function get_movie() {
+        check_ajax_referer('mlm_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $movie_id = absint($_POST['movie_id']);
+        if (!$movie_id) {
+            wp_send_json_error(array('message' => 'Invalid movie ID'));
+        }
+
+        global $wpdb;
+
+        // Get movie data
+        $movie = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}mlm_movies WHERE id = %d",
+            $movie_id
+        ));
+
+        if (!$movie) {
+            wp_send_json_error(array('message' => 'Movie not found'));
+        }
+
+        // Get video links
+        $links = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}mlm_movie_links 
+             WHERE movie_id = %d AND status = 'active'
+             ORDER BY CASE quality 
+                WHEN '4K' THEN 1 
+                WHEN '1080p' THEN 2 
+                WHEN '720p' THEN 3 
+                WHEN '480p' THEN 4 
+                WHEN '360p' THEN 5 
+                ELSE 6 
+             END",
+            $movie_id
+        ));
+
+        $movie->video_links = $links;
+
+        wp_send_json_success(array(
+            'movie' => $movie,
+            'message' => 'Movie retrieved successfully'
+        ));
+    }
+    /**
+     * Add Series
+     */
     public function add_series() {
         check_ajax_referer('mlm_nonce', 'nonce');
 
@@ -165,7 +342,7 @@ class MLM_Ajax {
         $data = $this->sanitize_series_data($_POST);
         global $wpdb;
 
-        $wpdb->insert(
+        $result = $wpdb->insert(
             $wpdb->prefix . 'mlm_series',
             array(
                 'title' => $data['title'],
@@ -180,17 +357,171 @@ class MLM_Ajax {
                 'country' => $data['country'],
                 'release_date' => $data['release_date'],
                 'genre' => $data['genre'],
+                'total_seasons' => $data['total_seasons'],
                 'status' => $data['status'],
                 'created_by' => get_current_user_id(),
                 'created_at' => current_time('mysql')
             )
         );
 
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Error adding series: ' . $wpdb->last_error));
+        }
+
         wp_send_json_success(array(
             'message' => 'Series added successfully',
             'series_id' => $wpdb->insert_id
         ));
     }
+    /**
+     * Edit Series
+     */
+    public function edit_series() {
+        check_ajax_referer('mlm_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $series_id = absint($_POST['series_id']);
+        if (!$series_id) {
+            wp_send_json_error(array('message' => 'Invalid series ID'));
+        }
+
+        $data = $this->sanitize_series_data($_POST);
+        global $wpdb;
+
+        $result = $wpdb->update(
+            $wpdb->prefix . 'mlm_series',
+            array(
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'trailer_url' => $data['trailer_url'],
+                'thumbnail' => $data['thumbnail'],
+                'poster' => $data['poster'],
+                'icon' => $data['icon'],
+                'language' => $data['language'],
+                'imdb_rating' => $data['imdb_rating'],
+                'age_restriction' => $data['age_restriction'],
+                'country' => $data['country'],
+                'release_date' => $data['release_date'],
+                'genre' => $data['genre'],
+                'total_seasons' => $data['total_seasons'],
+                'status' => $data['status'],
+                'updated_by' => get_current_user_id(),
+                'updated_at' => current_time('mysql')
+            ),
+            array('id' => $series_id),
+            array(
+                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s',
+                '%s', '%s', '%s', '%d', '%s', '%d', '%s'
+            ),
+            array('%d')
+        );
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Error updating series: ' . $wpdb->last_error));
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Series updated successfully',
+            'series_id' => $series_id
+        ));
+    }
+
+    /**
+     * Delete Series
+     */
+    public function delete_series() {
+        check_ajax_referer('mlm_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $series_id = absint($_POST['series_id']);
+        if (!$series_id) {
+            wp_send_json_error(array('message' => 'Invalid series ID'));
+        }
+
+        global $wpdb;
+
+        // First, delete all episode links
+        $wpdb->query($wpdb->prepare(
+            "DELETE el FROM {$wpdb->prefix}mlm_episode_links el
+             INNER JOIN {$wpdb->prefix}mlm_episodes e ON el.episode_id = e.id
+             WHERE e.series_id = %d",
+            $series_id
+        ));
+
+        // Then delete all episodes
+        $wpdb->delete(
+            $wpdb->prefix . 'mlm_episodes',
+            array('series_id' => $series_id),
+            array('%d')
+        );
+
+        // Finally delete the series
+        $result = $wpdb->delete(
+            $wpdb->prefix . 'mlm_series',
+            array('id' => $series_id),
+            array('%d')
+        );
+
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Error deleting series: ' . $wpdb->last_error));
+        }
+
+        wp_send_json_success(array('message' => 'Series deleted successfully'));
+    }
+
+    /**
+     * Get Series
+     */
+    public function get_series() {
+        check_ajax_referer('mlm_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permission denied');
+        }
+
+        $series_id = absint($_POST['series_id']);
+        if (!$series_id) {
+            wp_send_json_error(array('message' => 'Invalid series ID'));
+        }
+
+        global $wpdb;
+
+        // Get series data
+        $series = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}mlm_series WHERE id = %d",
+            $series_id
+        ));
+
+        if (!$series) {
+            wp_send_json_error(array('message' => 'Series not found'));
+        }
+
+        // Get episodes count by season
+        $episodes = $wpdb->get_results($wpdb->prepare(
+            "SELECT season_number, COUNT(*) as episode_count 
+             FROM {$wpdb->prefix}mlm_episodes 
+             WHERE series_id = %d 
+             GROUP BY season_number 
+             ORDER BY season_number",
+            $series_id
+        ));
+
+        $series->episodes_by_season = $episodes;
+
+        wp_send_json_success(array(
+            'series' => $series,
+            'message' => 'Series retrieved successfully'
+        ));
+    }
+    /**
+     * Get episode links
+     */
     public function get_episode_links() {
         check_ajax_referer('get_episode_links_nonce', 'nonce');
 
@@ -218,37 +549,32 @@ class MLM_Ajax {
             wp_send_json_error(array('message' => 'No links found'));
         }
 
-
         wp_send_json_success(array(
             'links' => $links,
             'message' => 'Links retrieved successfully'
         ));
     }
 
-
+    /**
+     * Handle channel deletion
+     */
     public function handle_delete_channel() {
-        // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'delete_channel_nonce')) {
             wp_send_json_error(array('message' => 'Invalid nonce'));
         }
 
-        // Check permissions
         if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => 'Permission denied'));
         }
 
-        // Get channel ID
         $channel_id = isset($_POST['channel_id']) ? intval($_POST['channel_id']) : 0;
         if (!$channel_id) {
             wp_send_json_error(array('message' => 'Invalid channel ID'));
         }
 
         global $wpdb;
-        $table_name = $wpdb->prefix . 'mlm_channels';
-
-        // Delete the channel
         $result = $wpdb->delete(
-            $table_name,
+            $wpdb->prefix . 'mlm_channels',
             array('id' => $channel_id),
             array('%d')
         );
@@ -259,36 +585,70 @@ class MLM_Ajax {
 
         wp_send_json_success(array('message' => 'Channel deleted successfully'));
     }
-    // Similar methods for edit_series, delete_series, get_series...
 
-    // Helper methods
+    /**
+     * Sanitize series data
+     */
+    private function sanitize_series_data($data) {
+        return array(
+            'title' => sanitize_text_field($data['title'] ?? ''),
+            'description' => wp_kses_post($data['description'] ?? ''),
+            'trailer_url' => esc_url_raw($data['trailer_url'] ?? ''),
+            'thumbnail' => esc_url_raw($data['thumbnail'] ?? ''),
+            'poster' => esc_url_raw($data['poster'] ?? ''),
+            'icon' => esc_url_raw($data['icon'] ?? ''),
+            'language' => sanitize_text_field($data['language'] ?? ''),
+            'imdb_rating' => floatval($data['imdb_rating'] ?? 0),
+            'age_restriction' => sanitize_text_field($data['age_restriction'] ?? ''),
+            'country' => sanitize_text_field($data['country'] ?? ''),
+            'release_date' => sanitize_text_field($data['release_date'] ?? ''),
+            'genre' => sanitize_text_field($data['genre'] ?? ''),
+            'total_seasons' => absint($data['total_seasons'] ?? 1),
+            'status' => sanitize_text_field($data['status'] ?? 'active')
+        );
+    }
+
+    /**
+     * Sanitize movie data
+     */
     private function sanitize_movie_data($data) {
         return array(
-            'title' => sanitize_text_field($data['title']),
-            'description' => wp_kses_post($data['description']),
-            'trailer_url' => esc_url_raw($data['trailer_url']),
-            'thumbnail' => esc_url_raw($data['thumbnail']),
-            'poster' => esc_url_raw($data['poster']),
-            'icon' => esc_url_raw($data['icon']),
-            'language' => sanitize_text_field($data['language']),
-            'imdb_rating' => floatval($data['imdb_rating']),
-            'age_restriction' => sanitize_text_field($data['age_restriction']),
-            'country' => sanitize_text_field($data['country']),
-            'release_date' => sanitize_text_field($data['release_date']),
-            'genre' => sanitize_text_field($data['genre']),
-            'duration' => sanitize_text_field($data['duration']),
-            'status' => sanitize_text_field($data['status']),
+            'title' => sanitize_text_field($data['title'] ?? ''),
+            'description' => wp_kses_post($data['description'] ?? ''),
+            'trailer_url' => esc_url_raw($data['trailer_url'] ?? ''),
+            'thumbnail' => esc_url_raw($data['thumbnail'] ?? ''),
+            'poster' => esc_url_raw($data['poster'] ?? ''),
+            'icon' => esc_url_raw($data['icon'] ?? ''),
+            'language' => sanitize_text_field($data['language'] ?? ''),
+            'imdb_rating' => floatval($data['imdb_rating'] ?? 0),
+            'age_restriction' => sanitize_text_field($data['age_restriction'] ?? ''),
+            'country' => sanitize_text_field($data['country'] ?? ''),
+            'release_date' => sanitize_text_field($data['release_date'] ?? ''),
+            'genre' => sanitize_text_field($data['genre'] ?? ''),
+            'duration' => sanitize_text_field($data['duration'] ?? ''),
+            'status' => sanitize_text_field($data['status'] ?? 'active'),
             'video_links' => isset($data['video_links']) ? $this->sanitize_video_links($data['video_links']) : array()
         );
     }
 
+    /**
+     * Sanitize video links
+     */
     private function sanitize_video_links($links) {
+        if (!is_array($links)) {
+            return array();
+        }
+
         $sanitized = array();
         foreach ($links as $link) {
+            if (!is_array($link)) {
+                continue;
+            }
+            
             $sanitized[] = array(
-                'url' => esc_url_raw($link['url']),
-                'quality' => sanitize_text_field($link['quality']),
-                'server' => sanitize_text_field($link['server'])
+                'url' => esc_url_raw($link['url'] ?? ''),
+                'quality' => sanitize_text_field($link['quality'] ?? ''),
+                'server' => sanitize_text_field($link['server'] ?? '')
             );
         }
         return $sanitized;
