@@ -219,7 +219,135 @@ class MLM_TMDB_API {
         $response = $this->make_request($endpoint, $params);
         return $response ? $response->seasons : false;
     }
+    /**
+     * Get video links for series/movie
+     * 
+     * @param int $id TMDB ID
+     * @param string $type Type of content (tv or movie)
+     * @return array Array of video links
+     */
+    public function get_videos($id, $type = 'tv') {
+        $endpoint = "/{$type}/{$id}/videos";
+        $response = $this->make_request($endpoint);
+        
+        if (!$response || empty($response->results)) {
+            return array();
+        }
 
+        $videos = array();
+        foreach ($response->results as $video) {
+            if ($video->site === 'YouTube' && in_array($video->type, array('Trailer', 'Teaser'))) {
+                $videos[] = array(
+                    'key' => $video->key,
+                    'name' => $video->name,
+                    'type' => $video->type,
+                    'url' => "https://www.youtube.com/watch?v={$video->key}"
+                );
+            }
+        }
+
+        return $videos;
+    }
+
+    /**
+     * Get external IDs (IMDB, etc)
+     * 
+     * @param int $id TMDB ID
+     * @param string $type Type of content (tv or movie)
+     * @return object|false External IDs
+     */
+    public function get_external_ids($id, $type = 'tv') {
+        $endpoint = "/{$type}/{$id}/external_ids";
+        return $this->make_request($endpoint);
+    }
+
+    /**
+     * Get content ratings
+     * 
+     * @param int $id TMDB ID
+     * @return object|false Content ratings
+     */
+    public function get_content_ratings($id) {
+        $endpoint = "/tv/{$id}/content_ratings";
+        return $this->make_request($endpoint);
+    }
+
+    /**
+     * Import full series with first season
+     * 
+     * @param int $tmdb_id TMDB series ID
+     * @return array Import result
+     */
+    public function import_full_series($tmdb_id) {
+        // Get series details
+        $series_data = $this->get_item_details($tmdb_id, 'tv');
+        if (!$series_data) {
+            return array(
+                'success' => false,
+                'message' => 'Could not fetch series details'
+            );
+        }
+
+        // Get additional data
+        $videos = $this->get_videos($tmdb_id, 'tv');
+        $external_ids = $this->get_external_ids($tmdb_id, 'tv');
+        $content_ratings = $this->get_content_ratings($tmdb_id);
+
+        // Merge all data
+        $series_data->videos = $videos;
+        $series_data->external_ids = $external_ids;
+        $series_data->content_ratings = $content_ratings;
+
+        // Format data for our database
+        $formatted_data = $this->format_series_data($series_data);
+        
+        global $wpdb;
+        
+        // Check if series already exists
+        $existing_series = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}mlm_series WHERE tmdb_id = %d",
+            $tmdb_id
+        ));
+
+        if ($existing_series) {
+            // Update existing series
+            $wpdb->update(
+                $wpdb->prefix . 'mlm_series',
+                $formatted_data,
+                array('id' => $existing_series),
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s', '%d'),
+                array('%d')
+            );
+            $series_id = $existing_series;
+        } else {
+            // Insert new series
+            $wpdb->insert(
+                $wpdb->prefix . 'mlm_series',
+                $formatted_data,
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s', '%d')
+            );
+            $series_id = $wpdb->insert_id;
+        }
+
+        if (!$series_id) {
+            return array(
+                'success' => false,
+                'message' => 'Error saving series to database'
+            );
+        }
+
+        // Import first season if available
+        if (!empty($series_data->seasons)) {
+            $first_season = $series_data->seasons[0];
+            $this->import_season_episodes($tmdb_id, $series_id, $first_season->season_number);
+        }
+
+        return array(
+            'success' => true,
+            'series_id' => $series_id,
+            'message' => 'Series imported successfully'
+        );
+    }
     /**
      * Format item data for database
      *
