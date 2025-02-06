@@ -97,11 +97,11 @@ class MLM_Ajax {
         }
     }
     /**
-     * Import season episodes via AJAX
+     * Import Season Episodes from TMDB
      */
     public function import_season_episodes() {
-        // Verify nonce and permissions
         check_ajax_referer('mlm_nonce', 'nonce');
+
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Permission denied');
         }
@@ -115,26 +115,17 @@ class MLM_Ajax {
         }
 
         $tmdb_api = MLM_TMDB_API::get_instance();
-        
-        try {
-            // Pass parameters in correct order: tmdb_id, season_number, local_id
-            $result = $tmdb_api->import_season_episodes(
-                $tmdb_series_id,
-                $season_number,
-                $local_series_id
-            );
+        $result = $tmdb_api->import_season_episodes(
+            $tmdb_series_id,
+            $season_number,
+            $local_series_id
+        );
 
-            if ($result['success']) {
-                wp_send_json_success($result);
-            } else {
-                wp_send_json_error($result);
-            }
-        } catch (Exception $e) {
-            wp_send_json_error(array(
-                'message' => $e->getMessage(),
-                'errors' => array($e->getMessage())
-            ));
+        if (!$result['success']) {
+            wp_send_json_error($result);
         }
+
+        wp_send_json_success($result);
     }
 
     

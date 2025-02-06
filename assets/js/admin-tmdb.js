@@ -181,22 +181,38 @@ jQuery(document).ready(function($) {
         const $button = $(this);
         const tmdbId = $button.data('tmdb-id');
         const seasonNumber = $button.data('season');
-        const localSeriesId = $button.data('series-id'); // قد يكون null
-
+        
         $button.prop('disabled', true)
                .html('<span class="spinner is-active"></span> Importing...');
 
-        importSeasonEpisodes(tmdbId, seasonNumber, localSeriesId)
-            .then(function(data) {
-                $button.html('Imported Successfully')
-                       .removeClass('button-primary')
-                       .addClass('button-secondary');
+        // First get or create the series in our database
+        importFromTMDB(tmdbId, 'tv')
+            .then(function(response) {
+                if (response.success) {
+                    // Now import the season episodes with correct parameter order
+                    return importSeasonEpisodes(
+                        tmdbId,
+                        seasonNumber,
+                        response.data.series_id
+                    );
+                }
+                throw new Error('Failed to import series');
+            })
+            .then(function(response) {
+                if (response.success) {
+                    $button.html(`Imported ${response.data.imported} Episodes`)
+                           .removeClass('button-primary')
+                           .addClass('button-secondary');
+                } else {
+                    throw new Error(response.data.message || 'Failed to import episodes');
+                }
             })
             .catch(function(error) {
                 $button.html('Error')
                        .removeClass('button-primary')
                        .addClass('button-link-delete')
                        .prop('disabled', false);
+                console.error(error);
                 alert(error.message);
             });
     });
@@ -238,34 +254,19 @@ jQuery(document).ready(function($) {
     function importSeasonEpisodes(tmdbSeriesId, seasonNumber, localSeriesId = null) {
         const data = {
             action: 'mlm_import_season_episodes',
-            nonce: mlm_nonce,
+            nonce: mlm_admin.nonce,
             tmdb_series_id: tmdbSeriesId,
             season_number: seasonNumber
         };
 
-        // إضافة series_id فقط إذا كان موجوداً
         if (localSeriesId) {
             data.series_id = localSeriesId;
         }
 
-        return jQuery.ajax({
-            url: ajaxurl,
+        return $.ajax({
+            url: mlm_admin.ajax_url,
             type: 'POST',
             data: data
-        }).then(function(response) {
-            if (response.success) {
-                // تحديث واجهة المستخدم بالنتيجة
-                const message = response.data.message;
-                const importCount = response.data.imported;
-                const updateCount = response.data.updated;
-                
-                // إظهار رسالة نجاح
-                alert(`${message}\nImported: ${importCount}\nUpdated: ${updateCount}`);
-                
-                return response.data;
-            } else {
-                throw new Error(response.data.message || 'Failed to import episodes');
-            }
         });
     }
 
