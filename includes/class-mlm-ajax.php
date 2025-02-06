@@ -97,32 +97,47 @@ class MLM_Ajax {
         }
     }
     /**
-     * Import Season Episodes from TMDB
+     * Import season episodes via AJAX
      */
     public function import_season_episodes() {
+        // Verify nonce and permissions
         check_ajax_referer('mlm_nonce', 'nonce');
-
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Permission denied');
         }
 
         $tmdb_series_id = absint($_POST['tmdb_series_id']);
-        $local_series_id = absint($_POST['series_id']);
         $season_number = absint($_POST['season_number']);
+        $local_series_id = isset($_POST['series_id']) ? absint($_POST['series_id']) : null;
 
-        if (!$tmdb_series_id || !$local_series_id || !$season_number) {
-            wp_send_json_error('Invalid parameters provided');
+        if (!$tmdb_series_id || !$season_number) {
+            wp_send_json_error('Missing required parameters');
         }
 
         $tmdb_api = MLM_TMDB_API::get_instance();
-        $result = $tmdb_api->import_season_episodes($tmdb_series_id, $local_series_id, $season_number);
+        
+        try {
+            // Pass parameters in correct order: tmdb_id, season_number, local_id
+            $result = $tmdb_api->import_season_episodes(
+                $tmdb_series_id,
+                $season_number,
+                $local_series_id
+            );
 
-        if (!$result['success']) {
-            wp_send_json_error($result['message']);
+            if ($result['success']) {
+                wp_send_json_success($result);
+            } else {
+                wp_send_json_error($result);
+            }
+        } catch (Exception $e) {
+            wp_send_json_error(array(
+                'message' => $e->getMessage(),
+                'errors' => array($e->getMessage())
+            ));
         }
-
-        wp_send_json_success($result);
     }
+
+    
     public function get_series_seasons() {
         check_ajax_referer('mlm_nonce', 'nonce');
 
@@ -147,7 +162,7 @@ class MLM_Ajax {
         ));
     }
 
-    
+
     /**
      * Add Movie
      */

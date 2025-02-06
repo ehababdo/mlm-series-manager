@@ -138,13 +138,35 @@ class MLM_TMDB_API {
      * Import season episodes
      * 
      * @param int $tmdb_series_id TMDB series ID
-     * @param int $local_series_id Local database series ID
      * @param int $season_number Season number to import
+     * @param int|null $local_series_id Local database series ID (optional)
      * @return array Result of import operation
      */
-    public function import_season_episodes($tmdb_series_id, $local_series_id, $season_number) {
-        $season = $this->get_season_details($tmdb_series_id, $season_number);
+    public function import_season_episodes($tmdb_series_id, $season_number, $local_series_id = null) {
+        global $wpdb;
         
+        // First, check if we have the series in our database by TMDB ID
+        if (!$local_series_id) {
+            $local_series_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}mlm_series WHERE tmdb_id = %d",
+                $tmdb_series_id
+            ));
+        }
+
+        // If series doesn't exist, we need to import it first
+        if (!$local_series_id) {
+            $series_import = $this->import_full_series($tmdb_series_id);
+            if (!$series_import['success']) {
+                return array(
+                    'success' => false,
+                    'message' => 'Failed to import series'
+                );
+            }
+            $local_series_id = $series_import['series_id'];
+        }
+
+        // Get season details from TMDB
+        $season = $this->get_season_details($tmdb_series_id, $season_number);
         if (!$season || empty($season->episodes)) {
             return array(
                 'success' => false,
@@ -152,58 +174,90 @@ class MLM_TMDB_API {
             );
         }
 
-        global $wpdb;
         $imported = 0;
+        $updated = 0;
         $errors = array();
 
         foreach ($season->episodes as $episode) {
             // Check if episode already exists
-            $exists = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM {$wpdb->prefix}mlm_episodes 
+            $existing_episode = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, updated_at FROM {$wpdb->prefix}mlm_episodes 
                  WHERE series_id = %d AND season_number = %d AND episode_number = %d",
                 $local_series_id,
                 $season_number,
                 $episode->episode_number
             ));
 
-            if ($exists) {
-                continue; // Skip existing episodes
-            }
-
-            $episode_data = $this->format_episode_data($episode, $local_series_id);
-            
-            $result = $wpdb->insert(
-                $wpdb->prefix . 'mlm_episodes',
-                $episode_data,
-                array(
-                    '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d'
-                )
+            $episode_data = array(
+                'series_id' => $local_series_id,
+                'season_number' => $season_number,
+                'episode_number' => $episode->episode_number,
+                'title' => $episode->name,
+                'description' => $episode->overview,
+                'thumbnail' => $this->get_image_url($episode->still_path, 'w300'),
+                'air_date' => $episode->air_date,
+                'status' => 'active',
+                'updated_at' => current_time('mysql'),
+                'updated_by' => get_current_user_id()
             );
 
-            if ($result) {
-                $imported++;
-            } else {
-                $errors[] = sprintf(
-                    'Failed to import episode S%02dE%02d: %s',
-                    $season_number,
-                    $episode->episode_number,
-                    $wpdb->last_error
+            if ($existing_episode) {
+                // Update existing episode
+                $result = $wpdb->update(
+                    $wpdb->prefix . 'mlm_episodes',
+                    $episode_data,
+                    array('id' => $existing_episode->id),
+                    array('%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d'),
+                    array('%d')
                 );
+                if ($result !== false) {
+                    $updated++;
+                } else {
+                    $errors[] = sprintf(
+                        'Failed to update episode S%02dE%02d: %s',
+                        $season_number,
+                        $episode->episode_number,
+                        $wpdb->last_error
+                    );
+                }
+            } else {
+                // Add new episode
+                $episode_data['created_at'] = current_time('mysql');
+                $episode_data['created_by'] = get_current_user_id();
+                
+                $result = $wpdb->insert(
+                    $wpdb->prefix . 'mlm_episodes',
+                    $episode_data,
+                    array('%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d')
+                );
+                
+                if ($result) {
+                    $imported++;
+                } else {
+                    $errors[] = sprintf(
+                        'Failed to import episode S%02dE%02d: %s',
+                        $season_number,
+                        $episode->episode_number,
+                        $wpdb->last_error
+                    );
+                }
             }
         }
 
         return array(
             'success' => true,
             'imported' => $imported,
+            'updated' => $updated,
             'errors' => $errors,
             'message' => sprintf(
-                'Imported %d episodes from season %d',
+                'Imported %d new episodes, updated %d existing episodes from season %d',
                 $imported,
+                $updated,
                 $season_number
-            )
+            ),
+            'series_id' => $local_series_id
         );
     }
-
     /**
      * Get all seasons for a series
      * 
