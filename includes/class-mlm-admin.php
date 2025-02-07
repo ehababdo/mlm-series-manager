@@ -14,14 +14,22 @@ class MLM_Admin {
 
     public function init_admin() {
         // Register settings
-        register_setting('mlm_options', 'mlm_settings');
+        register_setting('mlm_options', 'mlm_settings', array(
+            'type' => 'object',
+            'default' => array(
+                'tmdb_api_key' => '',
+                'items_per_page' => 20,
+                'default_language' => 'en',
+                'enable_subtitle_links' => true,
+            ),
+        ));
     }
 
     public function add_menu_pages() {
         // Main Menu
         add_menu_page(
-            'Media Library Manager',
-            'Media Library',
+            __('Media Library Manager', 'media-library-manager'),
+            __('Media Library', 'media-library-manager'),
             'manage_options',
             'mlm-dashboard',
             array($this, 'render_dashboard'),
@@ -29,73 +37,75 @@ class MLM_Admin {
             30
         );
 
-        // Submenus
+        // Movies submenu
         add_submenu_page(
             'mlm-dashboard',
-            'Movies',
-            'Movies',
+            __('Movies', 'media-library-manager'),
+            __('Movies', 'media-library-manager'),
             'manage_options',
             'mlm-movies',
             array($this, 'render_movies')
         );
 
+        // Series submenu
         add_submenu_page(
             'mlm-dashboard',
-            'TV Series',
-            'TV Series',
+            __('TV Series', 'media-library-manager'),
+            __('TV Series', 'media-library-manager'),
             'manage_options',
             'mlm-series',
             array($this, 'render_series')
         );
 
+        // Episodes submenu (hidden)
+        add_submenu_page(
+            null, // Hidden from menu
+            __('Episodes', 'media-library-manager'),
+            __('Episodes', 'media-library-manager'),
+            'manage_options',
+            'mlm-episodes',
+            array($this, 'render_episodes')
+        );
+
+        // Channels submenu
         add_submenu_page(
             'mlm-dashboard',
-            'TV Channels',
-            'TV Channels',
+            __('TV Channels', 'media-library-manager'),
+            __('TV Channels', 'media-library-manager'),
             'manage_options',
             'mlm-channels',
             array($this, 'render_channels')
         );
 
+        // TMDB Import submenu
         add_submenu_page(
             'mlm-dashboard',
-            'Statistics',
-            'Statistics',
-            'manage_options',
-            'mlm-statistics',
-            array($this, 'render_statistics')
-        );
-
-        add_submenu_page(
-            'mlm-dashboard',
-            'Settings',
-            'Settings',
-            'manage_options',
-            'mlm-settings',
-            array($this, 'render_settings')
-        );
-
-        // Add hidden submenu for episodes
-        add_submenu_page(
-            'mlm-dashboard',          // parent slug
-            'Episodes',            // page title
-            'Episodes',            // menu title
-            'manage_options',      // capability
-            'mlm-episodes',        // menu slug
-            array($this, 'render_episodes_page')  // callback function
-        );
-
-        // Add to your admin menu setup
-        add_submenu_page(
-            'mlm-dashboard',
-            'TMDB Import',
-            'Import from TMDB',
+            __('TMDB Import', 'media-library-manager'),
+            __('Import from TMDB', 'media-library-manager'),
             'manage_options',
             'mlm-tmdb',
             array($this, 'render_tmdb_page')
         );
 
+        // Statistics submenu
+        add_submenu_page(
+            'mlm-dashboard',
+            __('Statistics', 'media-library-manager'),
+            __('Statistics', 'media-library-manager'),
+            'manage_options',
+            'mlm-statistics',
+            array($this, 'render_statistics')
+        );
 
+        // Settings submenu
+        add_submenu_page(
+            'mlm-dashboard',
+            __('Settings', 'media-library-manager'),
+            __('Settings', 'media-library-manager'),
+            'manage_options',
+            'mlm-settings',
+            array($this, 'render_settings')
+        );
     }
 
     public function enqueue_admin_assets($hook) {
@@ -103,87 +113,85 @@ class MLM_Admin {
             // Styles
             wp_enqueue_style('mlm-admin', MLM_PLUGIN_URL . 'assets/css/admin.css', array(), MLM_VERSION);
             wp_enqueue_style('mlm-select2', MLM_PLUGIN_URL . 'assets/css/select2.min.css', array(), '4.1.0');
-            // jQuery UI
-            wp_enqueue_script('jquery-ui-sortable');
+            wp_enqueue_style('mlm-admin-tmdb', MLM_PLUGIN_URL . 'assets/css/admin-tmdb.css', array(), MLM_VERSION);
+
             // Scripts
             wp_enqueue_media();
+            wp_enqueue_script('jquery-ui-sortable');
             wp_enqueue_script('mlm-select2', MLM_PLUGIN_URL . 'assets/js/select2.min.js', array('jquery'), '4.1.0', true);
             wp_enqueue_script('mlm-admin', MLM_PLUGIN_URL . 'assets/js/admin.js', array('jquery', 'mlm-select2'), MLM_VERSION, true);
+            wp_enqueue_script('mlm-admin-tmdb', MLM_PLUGIN_URL . 'assets/js/admin-tmdb.js', array('jquery'), MLM_VERSION, true);
 
             // Localize script
             wp_localize_script('mlm-admin', 'mlm_admin', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('mlm_nonce'),
-                'placeholder_image' =>  MLM_PLUGIN_URL . 'assets/images/placeholder.png',
-                'current_user' => get_current_user_id(),
-                'current_date' => current_time('mysql'),
+                'placeholder_image' => MLM_PLUGIN_URL . 'assets/images/placeholder.png',
                 'texts' => array(
                     'confirm_delete' => __('Are you sure you want to delete this item?', 'media-library-manager'),
                     'error' => __('An error occurred', 'media-library-manager'),
-                    'success' => __('Operation completed successfully', 'media-library-manager')
+                    'success' => __('Operation completed successfully', 'media-library-manager'),
+                    'no_results' => __('No results found', 'media-library-manager'),
+                    'loading' => __('Loading...', 'media-library-manager'),
+                    'save_changes' => __('Save Changes', 'media-library-manager'),
+                    'saving' => __('Saving...', 'media-library-manager')
                 )
             ));
-
-            wp_enqueue_style(
-                'mlm-admin-tmdb',
-                MLM_PLUGIN_URL . 'assets/css/admin-tmdb.css',
-                array(),
-                MLM_VERSION
-            );
-
-            wp_enqueue_script(
-                'mlm-admin-tmdb',
-                MLM_PLUGIN_URL . 'assets/js/admin-tmdb.js',
-                array('jquery'),
-                MLM_VERSION,
-                true
-            );
-
         }
     }
-
-
 
     // Render pages
-    // Add the render function
-    public function render_tmdb_page() {
-        require_once MLM_PLUGIN_DIR . 'templates/admin/tmdb-search.php';
-    }
-
-
-    public function render_episodes_page() {
-
-        // Check if series_id is provided
-        if (!isset($_GET['series_id'])) {
-            wp_redirect(admin_url('admin.php?page=mlm-series'));
-            exit;
-        }
-        $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
-        
-        if ($action === 'add' || $action === 'edit') {
-            require_once MLM_PLUGIN_DIR . 'templates/admin/episode-editor.php';
-        } else {
-            require_once MLM_PLUGIN_DIR . 'templates/admin/episodes.php';
-        }
-
-        // Include episode actions
-        require_once MLM_PLUGIN_DIR . 'templates/admin/episode-actions.php';
-    }
-    
     public function render_dashboard() {
         include MLM_PLUGIN_DIR . 'templates/admin/dashboard.php';
     }
 
     public function render_movies() {
-        include MLM_PLUGIN_DIR . 'templates/admin/movies.php';
+        $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
+        
+        if ($action === 'add' || $action === 'edit') {
+            include MLM_PLUGIN_DIR . 'templates/admin/movie-editor.php';
+        } else {
+            include MLM_PLUGIN_DIR . 'templates/admin/movies.php';
+        }
     }
 
     public function render_series() {
-        include MLM_PLUGIN_DIR . 'templates/admin/series.php';
+        $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
+        
+        if ($action === 'add' || $action === 'edit') {
+            include MLM_PLUGIN_DIR . 'templates/admin/series-editor.php';
+        } else {
+            include MLM_PLUGIN_DIR . 'templates/admin/series.php';
+        }
+    }
+
+    public function render_episodes() {
+        if (!isset($_GET['series_id'])) {
+            wp_redirect(admin_url('admin.php?page=mlm-series'));
+            exit;
+        }
+
+        $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
+        
+        if ($action === 'add' || $action === 'edit') {
+            include MLM_PLUGIN_DIR . 'templates/admin/episode-editor.php';
+        } else {
+            include MLM_PLUGIN_DIR . 'templates/admin/episodes.php';
+        }
     }
 
     public function render_channels() {
-        include MLM_PLUGIN_DIR . 'templates/admin/channels.php';
+        $action = isset($_GET['action']) ? sanitize_text_field($_GET['action']) : '';
+        
+        if ($action === 'add' || $action === 'edit') {
+            include MLM_PLUGIN_DIR . 'templates/admin/channel-editor.php';
+        } else {
+            include MLM_PLUGIN_DIR . 'templates/admin/channels.php';
+        }
+    }
+
+    public function render_tmdb_page() {
+        include MLM_PLUGIN_DIR . 'templates/admin/tmdb-search.php';
     }
 
     public function render_statistics() {
@@ -194,7 +202,7 @@ class MLM_Admin {
         include MLM_PLUGIN_DIR . 'templates/admin/settings.php';
     }
 
-    private function get_pagination($total_items, $per_page = 10, $current_page = 1) {
+    private function get_pagination($total_items, $per_page = 20, $current_page = 1) {
         $total_pages = ceil($total_items / $per_page);
         
         return array(
@@ -205,7 +213,7 @@ class MLM_Admin {
             'offset' => ($current_page - 1) * $per_page
         );
     }
-    // Singleton instance
+
     public static function get_instance() {
         if (null === self::$instance) {
             self::$instance = new self();
